@@ -122,4 +122,4 @@ the data is safe to share.
 I'm a freelance Analytics Engineer with 7+ years in healthcare data — dbt, Snowflake, RCM, and clinical ops.
 Available for project work and retainer engagements.
 
-📩 robin.bagully@icloud.com | [LinkedIn](https://linkedin.com/in/robin-bagully) | [Portfolio](https://robinbagully.com)
+📩 robin.bagully@icloud.com | [LinkedIn](https://linkedin.com/in/robin-bagully) | [Portfolio](https://bagullyanalytics.com)
