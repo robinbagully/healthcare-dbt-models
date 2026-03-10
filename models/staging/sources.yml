@@ -1,0 +1,90 @@
+version: 2
+
+sources:
+  - name: raw
+    description: "Raw home infusion data loaded into Supabase public schema"
+    schema: public
+    tables:
+      - name: patients
+        description: "Patient demographics and insurance"
+        columns:
+          - name: patient_id
+            tests: [unique, not_null]
+          - name: primary_payer_id
+            tests: [not_null]
+
+      - name: payers
+        description: "Insurance payer reference data"
+        columns:
+          - name: payer_id
+            tests: [unique, not_null]
+
+      - name: referrals
+        description: "Patient referrals — referral to start of care funnel"
+        columns:
+          - name: referral_id
+            tests: [unique, not_null]
+          - name: patient_id
+            tests: [not_null]
+
+      - name: orders
+        description: "Therapy orders per patient episode"
+        columns:
+          - name: order_id
+            tests: [unique, not_null]
+          - name: patient_id
+            tests: [not_null]
+
+      - name: claims
+        description: "Billed claims — core RCM table"
+        columns:
+          - name: claim_id
+            tests: [unique, not_null]
+          - name: patient_id
+            tests: [not_null]
+          - name: payer_id
+            tests: [not_null]
+          - name: claim_status
+            tests:
+              - accepted_values:
+                  arguments:
+                    values: ['SUBMITTED','PENDING','PAID','DENIED','PARTIAL','WRITTEN_OFF','VOID']
+
+      - name: payments
+        description: "Payment postings and cash collections"
+        columns:
+          - name: payment_id
+            tests: [unique, not_null]
+          - name: claim_id
+            tests: [not_null]
+
+      - name: denials
+        description: "Denial tracking with reason codes and appeal outcomes"
+        columns:
+          - name: denial_id
+            tests: [unique, not_null]
+          - name: claim_id
+            tests: [not_null]
+          - name: appeal_status
+            tests:
+              - accepted_values:
+                  arguments: 
+                    values: ['NOT_APPEALED','PENDING','SUBMITTED','UPHELD','OVERTURNED','PARTIAL']
+
+      - name: denial_reason_codes
+        description: "Denial reason code reference data"
+        columns:
+          - name: reason_code
+            tests: [unique, not_null]
+
+      - name: therapy_types
+        description: "Therapy type reference data"
+        columns:
+          - name: therapy_code
+            tests: [unique, not_null]
+
+      - name: diagnosis_codes
+        description: "ICD-10 diagnosis code reference data"
+        columns:
+          - name: icd10_code
+            tests: [unique, not_null]

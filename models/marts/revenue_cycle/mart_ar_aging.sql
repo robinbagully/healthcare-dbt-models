@@ -1,23 +1,19 @@
 {{
   config(
-    materialized = 'table',
-    tags = ['mart', 'rcm', 'finance'],
-    post_hook = "grant select on {{ this }} to role REPORTER"
+    materialized='table',
+    tags=['mart','rcm','finance']
   )
 }}
 
 /*
   mart_ar_aging.sql
-  -----------------
-  Final AR aging mart. One row per payer per aging bucket.
-  Designed for use in executive dashboards and weekly AR review meetings.
-
-  Grain: payer_id + ar_aging_bucket (unique)
-  Consumers: Finance team, Revenue Integrity, Executive dashboard
+  AR aging summary by payer and bucket.
+  Grain: payer_id + aging_bucket (unique)
+  Consumers: Finance team, executive dashboard, weekly AR review
 */
 
-with base as (
-    select * from {{ ref('int_claims_with_aging') }}
+with open_ar as (
+    select * from {{ ref('int_claims_enriched') }}
     where is_open_ar = true
 ),
 
@@ -26,86 +22,83 @@ by_payer_bucket as (
         payer_id,
         payer_name,
         payer_type,
-        ar_aging_bucket,
-        ar_aging_bucket_order,
+        aging_bucket,
+        aging_bucket_sort,
 
-        count(distinct claim_id)                        as claim_count,
-        count(distinct patient_id)                      as patient_count,
-        sum(outstanding_balance)                        as outstanding_balance,
-        avg(outstanding_balance)                        as avg_balance_per_claim,
-        sum(billed_amount)                              as total_billed,
-        sum(case when has_open_denial then 1 else 0 end) as claims_with_open_denial,
-        sum(case when has_open_denial then outstanding_balance else 0 end)
-                                                        as balance_with_open_denial
+        count(distinct claim_id)                            as claim_count,
+        count(distinct patient_id)                          as patient_count,
+        sum(outstanding_balance)                            as outstanding_balance,
+        avg(outstanding_balance)                            as avg_balance_per_claim,
+        sum(billed_amount)                                  as total_billed,
+        avg(days_outstanding)                               as avg_days_outstanding,
 
-    from base
+        -- Denial metrics
+        sum(case when has_open_denial then 1 else 0 end)    as claims_with_open_denial,
+        sum(case when has_open_denial
+            then outstanding_balance else 0 end)            as balance_with_open_denial
+
+    from open_ar
     group by 1,2,3,4,5
 ),
 
 with_totals as (
     select
         *,
+
+        -- Payer total AR (for % calc)
         sum(outstanding_balance) over (
             partition by payer_id
-        ) as payer_total_ar,
+        )                                                   as payer_total_ar,
 
-        sum(outstanding_balance) over () as grand_total_ar,
+        -- Grand total AR
+        sum(outstanding_balance) over ()                    as grand_total_ar,
 
-        -- % of this payer's AR in this bucket
+        -- % of payer's AR in this bucket
         round(
-            outstanding_balance / nullif(
-                sum(outstanding_balance) over (partition by payer_id), 0
-            ) * 100, 2
-        ) as pct_of_payer_ar,
+            outstanding_balance
+            / nullif(sum(outstanding_balance) over (
+                partition by payer_id), 0) * 100, 1
+        )                                                   as pct_of_payer_ar,
 
         -- % of total AR
         round(
-            outstanding_balance / nullif(
-                sum(outstanding_balance) over (), 0
-            ) * 100, 2
-        ) as pct_of_total_ar,
+            outstanding_balance
+            / nullif(sum(outstanding_balance) over (), 0)
+            * 100, 1
+        )                                                   as pct_of_total_ar,
 
-        -- Denial rate for this bucket/payer
+        -- Open denial rate
         round(
-            claims_with_open_denial / nullif(claim_count, 0) * 100, 2
-        ) as open_denial_rate_pct
+            claims_with_open_denial
+            / nullif(claim_count, 0) * 100, 1
+        )                                                   as open_denial_rate_pct
 
     from by_payer_bucket
-),
-
-final as (
-    select
-        -- Surrogate key
-        {{ dbt_utils.generate_surrogate_key(['payer_id', 'ar_aging_bucket']) }}
-                                as aging_id,
-
-        payer_id,
-        payer_name,
-        payer_type,
-        ar_aging_bucket,
-        ar_aging_bucket_order,
-
-        claim_count,
-        patient_count,
-
-        -- Rounded financials
-        round(outstanding_balance, 2)       as outstanding_balance,
-        round(avg_balance_per_claim, 2)     as avg_balance_per_claim,
-        round(total_billed, 2)              as total_billed,
-        round(payer_total_ar, 2)            as payer_total_ar,
-        round(grand_total_ar, 2)            as grand_total_ar,
-
-        pct_of_payer_ar,
-        pct_of_total_ar,
-
-        claims_with_open_denial,
-        round(balance_with_open_denial, 2)  as balance_with_open_denial,
-        open_denial_rate_pct,
-
-        -- Load metadata
-        current_timestamp                   as dbt_updated_at
-
-    from with_totals
 )
 
-select * from final
+select
+    -- Surrogate key
+    payer_id || '|' || aging_bucket                         as aging_id,
+
+    payer_id,
+    payer_name,
+    payer_type,
+    aging_bucket,
+    aging_bucket_sort,
+    claim_count,
+    patient_count,
+    round(outstanding_balance, 2)                           as outstanding_balance,
+    round(avg_balance_per_claim, 2)                         as avg_balance_per_claim,
+    round(total_billed, 2)                                  as total_billed,
+    round(avg_days_outstanding, 0)                          as avg_days_outstanding,
+    round(payer_total_ar, 2)                                as payer_total_ar,
+    round(grand_total_ar, 2)                                as grand_total_ar,
+    pct_of_payer_ar,
+    pct_of_total_ar,
+    claims_with_open_denial,
+    round(balance_with_open_denial, 2)                      as balance_with_open_denial,
+    open_denial_rate_pct,
+    current_timestamp                                       as dbt_updated_at
+
+from with_totals
+order by payer_name, aging_bucket_sort
