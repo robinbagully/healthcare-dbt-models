@@ -2,7 +2,7 @@
 
 > A production-grade dbt project modeling Revenue Cycle Management (RCM) and clinical analytics for home infusion and specialty pharmacy data.
 
-Built by [Robin Bagully](https://linkedin.com/in/robin-bagully) — Freelance Analytics Engineer specializing in healthcare data.
+Built by [Robin Bagully](https://linkedin.com/in/robin-bagully) - Freelance Analytics Engineer specializing in healthcare data.
 
 ---
 
@@ -29,8 +29,8 @@ healthcare-dbt-models/
 │   │   └── src_clinical/     # Patients, referrals, orders, therapies
 │   ├── intermediate/         # Business logic, joins, calculations
 │   └── marts/
-│       ├── revenue_cycle/    # AR, denials, cash — for finance & ops
-│       └── clinical/         # Census, referrals — for clinical teams
+│       ├── revenue_cycle/    # AR, denials, cash - for finance & ops
+│       └── clinical/         # Census, referrals - for clinical teams
 ├── macros/                   # Reusable Jinja macros
 ├── tests/                    # Custom data tests
 ├── seeds/                    # Reference data (ICD codes, denial reasons)
@@ -111,7 +111,7 @@ dbt run --select marts.revenue_cycle
 ## Notes on Healthcare Data
 
 All models in this repo use **synthetic or anonymized data**. No PHI/PII is present.
-Source table schemas mirror real CPR+ structures — field names and grain are authentic,
+Source table schemas mirror real CPR+ structures - field names and grain are authentic,
 values are generated. This is intentional: the modeling patterns are transferable,
 the data is safe to share.
 
@@ -119,7 +119,7 @@ the data is safe to share.
 
 ## About
 
-I'm a freelance Analytics Engineer with 7+ years in healthcare data — dbt, Snowflake, RCM, and clinical ops.
+I'm a freelance Analytics Engineer with 10+ years in healthcare data - dbt, Snowflake, RCM, and clinical ops.
 Available for project work and retainer engagements.
 
-📩 robin@bagullyanalytics.com | [LinkedIn](https://linkedin.com/in/robin-bagully) | [Portfolio](https://bagullyanalytics.com)
+📩 robin@bagullyanalytics.com | [LinkedIn](https://linkedin.com/in/robin-bagully) | [Portfolio](https://robinbagully.com)
