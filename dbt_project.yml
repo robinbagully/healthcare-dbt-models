@@ -1,0 +1,48 @@
+name: 'healthcare_rcm'
+version: '1.0.0'
+config-version: 2
+
+profile: 'healthcare_rcm'
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+models:
+  healthcare_rcm:
+    staging:
+      +materialized: view
+      +schema: staging
+      src_billing:
+        +tags: ["billing", "staging"]
+      src_clinical:
+        +tags: ["clinical", "staging"]
+
+    intermediate:
+      +materialized: ephemeral
+      +schema: intermediate
+
+    marts:
+      +materialized: table
+      revenue_cycle:
+        +schema: mart_rcm
+        +tags: ["rcm", "finance"]
+      clinical:
+        +schema: mart_clinical
+        +tags: ["clinical", "ops"]
+
+vars:
+  # Default AR aging buckets (days)
+  ar_bucket_1_max: 30
+  ar_bucket_2_max: 60
+  ar_bucket_3_max: 90
+  # Lookback window for denial trending
+  denial_lookback_days: 90
+  # Minimum balance to include in AR aging
+  ar_min_balance: 0.01
